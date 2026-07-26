@@ -80,12 +80,33 @@ Review ONLY the changed code for security vulnerabilities and code quality issue
         hooks=[log_tool_results, enforce_safe_tools],
     )
 
+    # Helper to load .env or .env.local if available
+    for env_file in [".env.local", ".env", os.path.join(SCRIPT_DIR, "..", ".env.local"), os.path.join(SCRIPT_DIR, "..", ".env")]:
+        if os.path.exists(env_file):
+            try:
+                with open(env_file, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#") and "=" in line:
+                            key, val = line.split("=", 1)
+                            key = key.strip()
+                            val = val.strip().strip("'\"")
+                            if key and not os.environ.get(key):
+                                os.environ[key] = val
+            except Exception:
+                pass
+
     if os.environ.get("GEMINI_API_KEY"):
         config_kwargs["api_key"] = os.environ["GEMINI_API_KEY"]
-    else:
+    elif os.environ.get("GOOGLE_CLOUD_PROJECT"):
         config_kwargs["vertex"] = True
-        config_kwargs["project"] = os.environ.get("GOOGLE_CLOUD_PROJECT")
+        config_kwargs["project"] = os.environ["GOOGLE_CLOUD_PROJECT"]
         config_kwargs["location"] = os.environ.get("GOOGLE_CLOUD_LOCATION", "global")
+    else:
+        raise ValueError(
+            "Neither GEMINI_API_KEY nor GOOGLE_CLOUD_PROJECT environment variable is set. "
+            "Please set GEMINI_API_KEY in your environment or .env.local file."
+        )
 
     config = LocalAgentConfig(**config_kwargs)
 
