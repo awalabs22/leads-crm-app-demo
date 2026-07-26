@@ -147,9 +147,14 @@ def format_markdown(result: dict) -> str:
 
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else "."
-    result = asyncio.run(review_code(target))
-    markdown = format_markdown(result)
+    try:
+        result = asyncio.run(review_code(target))
+        markdown = format_markdown(result)
+        print(json.dumps(result, indent=2))
+    except Exception as e:
+        markdown = f"## AI Security Review\n\n⚠️ **Error running security review:** `{str(e)}`\n"
+        print(f"Error during code review: {e}", file=sys.stderr)
+
     with open(OUTPUT_FILE, "w") as f:
         f.write(markdown)
     print(f"Review written to {OUTPUT_FILE}")
-    print(json.dumps(result, indent=2))
